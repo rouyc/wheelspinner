@@ -24,7 +24,7 @@
 
     .container {
       width: 100%;
-      max-width: 800px;
+      max-width: 900px;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -228,7 +228,7 @@
 </head>
 <body>
   <div class="container">
-    <h1>🧚 Ymmep Show 🧚</h1>
+    <h1>🗼 Concours abonnés - Spécial Japon 🗻</h1>
 
     <div class="input-section">
       <h2>Liste des participants</h2>
@@ -273,6 +273,7 @@
     let confettiParticles = [];
     let currentLightIndex = 0;
     let lightElements = [];
+    let forcedWinner = null; // Pour forcer le gagnant
 
     const colors = [
       '#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A',
@@ -419,42 +420,43 @@
       // Choisir un index gagnant aléatoire (jamais le premier)
       const targetIndex = eligibleIndices[Math.floor(Math.random() * eligibleIndices.length)];
 
+      // Sauvegarder le gagnant forcé
+      forcedWinner = names[targetIndex];
+
       // Calculer la rotation nécessaire pour que le gagnant soit sous la flèche
       const sliceAngle = (2 * Math.PI) / names.length;
-      const pointerAngle = (3 * Math.PI) / 2; // Flèche en haut
-
-      // Calculer l'angle cible pour que le segment du gagnant soit sous la flèche
-      const targetSegmentAngle = targetIndex * sliceAngle;
+      const pointerAngle = (3 * Math.PI) / 2; // Flèche en haut (270°)
 
       // Nombre de tours complets (entre 8 et 12 pour plus de rotation)
       const fullSpins = 8 + Math.floor(Math.random() * 5);
 
-      // Calculer la rotation finale pour atteindre le gagnant
-      // On veut que pointerAngle - finalRotation pointe sur targetSegmentAngle
-      let targetRotation = pointerAngle - targetSegmentAngle;
+      // L'angle de départ du segment du gagnant (les segments commencent à 0 et vont dans le sens horaire)
+      const targetSegmentStartAngle = targetIndex * sliceAngle;
 
-      // Ajouter un petit décalage aléatoire dans le segment pour plus de naturel
-      const segmentOffset = (Math.random() - 0.5) * sliceAngle * 0.5;
-      targetRotation += segmentOffset;
+      // On veut que la flèche (à 3π/2) pointe sur le milieu du segment gagnant
+      const targetSegmentMiddle = targetSegmentStartAngle + sliceAngle / 2;
 
-      // Ajouter les tours complets
-      targetRotation += fullSpins * 2 * Math.PI;
+      // La rotation finale doit positionner le segment sous la flèche
+      // Formule: rotation = pointerAngle - targetSegmentMiddle + tours complets
+      let finalRotation = pointerAngle - targetSegmentMiddle + (fullSpins * 2 * Math.PI);
 
-      // Normaliser currentRotation pour éviter des nombres trop grands
-      const normalizedCurrentRotation = currentRotation % (2 * Math.PI);
+      // Normaliser pour s'assurer qu'on part de la position actuelle
+      const currentNormalized = currentRotation % (2 * Math.PI);
+      const targetNormalized = finalRotation % (2 * Math.PI);
 
-      // S'assurer qu'on fait au moins fullSpins tours complets depuis la position actuelle
-      targetRotation = normalizedCurrentRotation + (fullSpins * 2 * Math.PI) + (pointerAngle - targetSegmentAngle + segmentOffset);
+      // Calculer la rotation totale depuis la position actuelle
+      let totalRotation = (fullSpins * 2 * Math.PI) + (targetNormalized - currentNormalized);
 
-      // Ajuster pour toujours avoir une rotation positive et significative
-      while (targetRotation - currentRotation < fullSpins * 2 * Math.PI) {
-        targetRotation += 2 * Math.PI;
+      // S'assurer qu'on fait bien les tours complets
+      if (totalRotation < fullSpins * 2 * Math.PI) {
+        totalRotation += 2 * Math.PI;
       }
+
+      const targetRotation = currentRotation + totalRotation;
 
       const spinDuration = 10000; // 10 secondes
       const startTime = Date.now();
       const startRotation = currentRotation;
-      const totalRotation = targetRotation - startRotation;
 
       function animate() {
         const now = Date.now();
@@ -464,7 +466,7 @@
         // Easing function pour un ralentissement naturel
         const easeOut = 1 - Math.pow(1 - progress, 3);
 
-        currentRotation = startRotation + totalRotation * easeOut;
+        currentRotation = startRotation + (targetRotation - startRotation) * easeOut;
         drawWheel();
 
         if (progress < 1) {
@@ -481,29 +483,14 @@
     }
 
     function showWinner() {
-      // Normaliser la rotation pour obtenir un angle entre 0 et 2π
-      let normalizedRotation = currentRotation % (2 * Math.PI);
-      if (normalizedRotation < 0) normalizedRotation += 2 * Math.PI;
-
-      const sliceAngle = (2 * Math.PI) / names.length;
-
-      // La flèche est AU-DESSUS de la roue et pointe VERS LE BAS
-      // Dans le canvas, l'angle 0 est à droite (3h), π/2 en bas (6h), π à gauche (9h), 3π/2 en haut (12h)
-      // La flèche pointe donc sur la position 3π/2 (270° ou -90°)
-      const pointerAngle = (3 * Math.PI) / 2; // Position en haut (12h)
-
-      // Calculer quel segment se trouve sous la flèche
-      // On soustrait la rotation actuelle de la position de la flèche
-      let targetAngle = (pointerAngle - normalizedRotation) % (2 * Math.PI);
-      if (targetAngle < 0) targetAngle += 2 * Math.PI;
-
-      // Trouver l'index du segment
-      let winningIndex = Math.floor(targetAngle / sliceAngle) % names.length;
-
-      const winner = names[winningIndex];
+      // Utiliser le gagnant forcé si défini
+      const winner = forcedWinner || names[0];
 
       resultText.textContent = `🎉 Gagnant : ${winner} ! 🎉`;
       resultSection.classList.remove('hidden');
+
+      // Réinitialiser le gagnant forcé
+      forcedWinner = null;
 
       // Animation de confettis (simple)
       celebrateWinner();
