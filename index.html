@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Roue du tirage au sort</title>
+  <style>
+    body {
+      background: radial-gradient(circle at center, #222 0%, #000 100%);
+      color: #fff;
+      font-family: "Poppins", sans-serif;
+      text-align: center;
+      padding: 20px;
+    }
+
+    h1 {
+      font-size: 2em;
+      margin-bottom: 10px;
+    }
+
+    textarea {
+      width: 90%;
+      max-width: 400px;
+      height: 120px;
+      margin: 10px auto;
+      display: block;
+      border-radius: 8px;
+      padding: 10px;
+      border: none;
+      outline: none;
+      font-size: 16px;
+    }
+
+    #wheel-container {
+      position: relative;
+      margin: 30px auto;
+      width: 300px;
+      height: 300px;
+    }
+
+    #wheel {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      border: 10px solid #fff;
+      transition: transform 5s cubic-bezier(0.33, 1, 0.68, 1);
+      transform: rotate(0deg);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .segment {
+      position: absolute;
+      width: 50%;
+      height: 50%;
+      left: 50%;
+      top: 50%;
+      transform-origin: 0% 0%;
+      background: red;
+      clip-path: polygon(0 0, 100% 0, 0 100%);
+    }
+
+    #pointer {
+      width: 0;
+      height: 0;
+      border-left: 15px solid transparent;
+      border-right: 15px solid transparent;
+      border-bottom: 30px solid yellow;
+      margin: 0 auto;
+      position: relative;
+      top: -10px;
+    }
+
+    button {
+      margin-top: 20px;
+      padding: 10px 20px;
+      font-size: 18px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      background-color: #f39c12;
+      color: white;
+      transition: 0.3s;
+    }
+
+    button:hover {
+      background-color: #e67e22;
+    }
+
+    #result {
+      margin-top: 30px;
+      font-size: 22px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>🎯 Roue du tirage au sort</h1>
+  <p>Entrez les noms (un par ligne) :</p>
+  <textarea id="namesInput" placeholder="Exemple :&#10;Alice&#10;Bob&#10;Charlie"></textarea>
+  <button id="createWheel">Créer la roue</button>
+
+  <div id="wheel-container">
+    <div id="pointer"></div>
+    <div id="wheel"></div>
+  </div>
+
+  <button id="spinBtn" style="display:none;">🎰 Lancer la roue</button>
+  <div id="result"></div>
+
+  <script>
+    const wheel = document.getElementById('wheel');
+    const result = document.getElementById('result');
+    const createWheelBtn = document.getElementById('createWheel');
+    const spinBtn = document.getElementById('spinBtn');
+    const colors = ['#E74C3C','#F1C40F','#2ECC71','#3498DB','#9B59B6','#E67E22','#1ABC9C','#C0392B','#8E44AD','#16A085'];
+    let names = [];
+    let angle = 0;
+
+    createWheelBtn.addEventListener('click', () => {
+      const input = document.getElementById('namesInput').value.trim();
+      if (!input) {
+        alert('⚠️ Entrez au moins un nom !');
+        return;
+      }
+
+      names = input.split('\n').map(n => n.trim()).filter(n => n);
+      if (names.length < 2) {
+        alert('⚠️ Entrez au moins deux noms pour un tirage !');
+        return;
+      }
+
+      // Nettoyer la roue existante
+      wheel.innerHTML = '';
+      const sliceAngle = 360 / names.length;
+
+      names.forEach((name, i) => {
+        const segment = document.createElement('div');
+        segment.classList.add('segment');
+        segment.style.background = colors[i % colors.length];
+        segment.style.transform = `rotate(${i * sliceAngle}deg) skewY(${90 - sliceAngle}deg)`;
+        wheel.appendChild(segment);
+      });
+
+      result.textContent = '';
+      spinBtn.style.display = 'inline-block';
+    });
+
+    spinBtn.addEventListener('click', () => {
+      result.textContent = '';
+      const rotation = 360 * 5 + Math.floor(Math.random() * 360);
+      wheel.style.transform = `rotate(${rotation}deg)`;
+      setTimeout(() => {
+        const finalAngle = rotation % 360;
+        const sliceAngle = 360 / names.length;
+        const winnerIndex = Math.floor((names.length - (finalAngle / sliceAngle)) % names.length);
+        result.textContent = `🎉 Gagnant : ${names[winnerIndex]} !`;
+      }, 5000);
+    });
+  </script>
+
+</body>
+</html>
