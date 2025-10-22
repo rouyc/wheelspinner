@@ -34,8 +34,8 @@
     #wheel-container {
       position: relative;
       margin: 30px auto;
-      width: 300px;
-      height: 300px;
+      width: 320px;
+      height: 320px;
     }
 
     #wheel {
@@ -43,7 +43,7 @@
       height: 100%;
       border-radius: 50%;
       border: 10px solid #fff;
-      transition: transform 5s cubic-bezier(0.33, 1, 0.68, 1);
+      transition: transform 6s cubic-bezier(0.33, 1, 0.68, 1);
       transform: rotate(0deg);
       overflow: hidden;
       position: relative;
@@ -88,9 +88,23 @@
     }
 
     #result {
-      margin-top: 30px;
-      font-size: 22px;
+      margin-top: 40px;
+      font-size: 26px;
       font-weight: bold;
+      opacity: 0;
+      transition: opacity 1s ease, transform 0.5s ease;
+      transform: scale(0.5);
+    }
+
+    #result.show {
+      opacity: 1;
+      transform: scale(1.3);
+      animation: bounce 1s ease infinite alternate;
+    }
+
+    @keyframes bounce {
+      from { transform: scale(1.2); }
+      to { transform: scale(1.4); }
     }
   </style>
 </head>
@@ -109,14 +123,20 @@
   <button id="spinBtn" style="display:none;">🎰 Lancer la roue</button>
   <div id="result"></div>
 
+  <audio id="tickSound" preload="auto">
+    <source src="https://actions.google.com/sounds/v1/impacts/wood_plank_flicks.ogg" type="audio/ogg">
+  </audio>
+
   <script>
     const wheel = document.getElementById('wheel');
     const result = document.getElementById('result');
     const createWheelBtn = document.getElementById('createWheel');
     const spinBtn = document.getElementById('spinBtn');
+    const tickSound = document.getElementById('tickSound');
+
     const colors = ['#E74C3C','#F1C40F','#2ECC71','#3498DB','#9B59B6','#E67E22','#1ABC9C','#C0392B','#8E44AD','#16A085'];
     let names = [];
-    let angle = 0;
+    let spinning = false;
 
     createWheelBtn.addEventListener('click', () => {
       const input = document.getElementById('namesInput').value.trim();
@@ -131,7 +151,7 @@
         return;
       }
 
-      // Nettoyer la roue existante
+      // Nettoyer la roue
       wheel.innerHTML = '';
       const sliceAngle = 360 / names.length;
 
@@ -144,19 +164,34 @@
       });
 
       result.textContent = '';
+      result.classList.remove('show');
       spinBtn.style.display = 'inline-block';
     });
 
     spinBtn.addEventListener('click', () => {
+      if (spinning) return;
+      spinning = true;
+      result.classList.remove('show');
       result.textContent = '';
+
       const rotation = 360 * 5 + Math.floor(Math.random() * 360);
       wheel.style.transform = `rotate(${rotation}deg)`;
+
+      // Joue le son de "clic" pendant la rotation
+      let tickInterval = setInterval(() => {
+        tickSound.currentTime = 0;
+        tickSound.play();
+      }, 100);
+
       setTimeout(() => {
+        clearInterval(tickInterval);
+        spinning = false;
         const finalAngle = rotation % 360;
         const sliceAngle = 360 / names.length;
         const winnerIndex = Math.floor((names.length - (finalAngle / sliceAngle)) % names.length);
-        result.textContent = `🎉 Gagnant : ${names[winnerIndex]} !`;
-      }, 5000);
+        result.textContent = `🎉 Gagnant : ${names[winnerIndex]} 🎉`;
+        result.classList.add('show');
+      }, 6000);
     });
   </script>
 
