@@ -274,6 +274,7 @@
     let currentLightIndex = 0;
     let lightElements = [];
     let forcedWinner = null; // Pour forcer le gagnant
+    let suspenseAudio = null;
 
     const colors = [
       '#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A',
@@ -292,6 +293,73 @@
 
     createBtn.addEventListener('click', createWheel);
     spinBtn.addEventListener('click', spinWheel);
+
+    // Créer une musique de suspense synthétique
+    function createSuspenseMusic() {
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      const duration = 15; // 15 secondes
+
+      // Créer un buffer pour la musique
+      const bufferSize = audioContext.sampleRate * duration;
+      const buffer = audioContext.createBuffer(2, bufferSize, audioContext.sampleRate);
+
+      // Remplir les canaux avec une mélodie de suspense
+      for (let channel = 0; channel < 2; channel++) {
+        const data = buffer.getChannelData(channel);
+
+        for (let i = 0; i < bufferSize; i++) {
+          const time = i / audioContext.sampleRate;
+
+          // Progression du suspense (augmente avec le temps)
+          const progress = time / duration;
+
+          // Basse pulsante (battement de coeur)
+          const bass = Math.sin(2 * Math.PI * 2 * time) * 0.3 * (1 + progress);
+
+          // Ton aigu qui monte progressivement
+          const freq = 200 + (progress * 400); // Monte de 200Hz à 600Hz
+          const treble = Math.sin(2 * Math.PI * freq * time) * 0.15;
+
+          // Trémolo pour l'effet de tension
+          const tremolo = Math.sin(2 * Math.PI * 6 * time);
+
+          // Combiner les éléments
+          data[i] = (bass + treble) * (0.5 + tremolo * 0.3) * 0.4;
+        }
+      }
+
+      const source = audioContext.createBufferSource();
+      source.buffer = buffer;
+
+      const gainNode = audioContext.createGain();
+      gainNode.gain.value = 0.3;
+
+      source.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+
+      return { source, context: audioContext, gainNode };
+    }
+
+    function playSuspenseMusic() {
+      suspenseAudio = createSuspenseMusic();
+      suspenseAudio.source.start(0);
+    }
+
+    function stopSuspenseMusic() {
+      if (suspenseAudio) {
+        // Fade out
+        suspenseAudio.gainNode.gain.exponentialRampToValueAtTime(
+          0.01,
+          suspenseAudio.context.currentTime + 0.5
+        );
+        setTimeout(() => {
+          if (suspenseAudio && suspenseAudio.source) {
+            suspenseAudio.source.stop();
+            suspenseAudio = null;
+          }
+        }, 500);
+      }
+    }
 
     // Créer les ampoules lumineuses
     function createLights() {
@@ -347,8 +415,8 @@
         .map(name => name.trim())
         .filter(name => name.length > 0);
 
-      if (names.length < 2) {
-        alert('⚠️ Veuillez entrer au moins 2 noms !');
+      if (names.length < 4) {
+        alert('⚠️ Veuillez entrer au moins 4 noms !');
         return;
       }
 
@@ -410,14 +478,22 @@
       spinBtn.disabled = true;
       resultSection.classList.add('hidden');
 
-      // Le premier nom de la liste ne peut jamais gagner
-      // On choisit un gagnant parmi les autres (index 1 et plus)
-      const eligibleIndices = [];
-      for (let i = 1; i < names.length; i++) {
-        eligibleIndices.push(i);
+      // Jouer la musique de suspense
+      playSuspenseMusic();
+
+      // Seuls le 2ème, 3ème et 4ème nom peuvent gagner (index 1, 2 et 3)
+      const eligibleIndices = [1, 2, 3]; // Index du 2ème, 3ème et 4ème nom
+
+      // Vérifier qu'il y a au moins 4 noms
+      if (names.length < 4) {
+        alert('⚠️ Il faut au moins 4 noms pour faire tourner la roue !');
+        isSpinning = false;
+        spinBtn.disabled = false;
+        stopSuspenseMusic();
+        return;
       }
 
-      // Choisir un index gagnant aléatoire (jamais le premier)
+      // Choisir aléatoirement entre le 2ème, 3ème et 4ème nom
       const targetIndex = eligibleIndices[Math.floor(Math.random() * eligibleIndices.length)];
 
       // Sauvegarder le gagnant forcé
@@ -427,8 +503,8 @@
       const sliceAngle = (2 * Math.PI) / names.length;
       const pointerAngle = (3 * Math.PI) / 2; // Flèche en haut (270°)
 
-      // Nombre de tours complets (entre 8 et 12 pour plus de rotation)
-      const fullSpins = 8 + Math.floor(Math.random() * 5);
+      // Nombre de tours complets (entre 12 et 15 pour au moins 15 secondes)
+      const fullSpins = 12 + Math.floor(Math.random() * 4);
 
       // L'angle de départ du segment du gagnant (les segments commencent à 0 et vont dans le sens horaire)
       const targetSegmentStartAngle = targetIndex * sliceAngle;
@@ -454,7 +530,7 @@
 
       const targetRotation = currentRotation + totalRotation;
 
-      const spinDuration = 10000; // 10 secondes
+      const spinDuration = 15000; // 15 secondes
       const startTime = Date.now();
       const startRotation = currentRotation;
 
@@ -475,6 +551,10 @@
           // Animation terminée
           isSpinning = false;
           spinBtn.disabled = false;
+
+          // Arrêter la musique
+          stopSuspenseMusic();
+
           showWinner();
         }
       }
