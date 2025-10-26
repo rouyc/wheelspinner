@@ -415,8 +415,8 @@
         .map(name => name.trim())
         .filter(name => name.length > 0);
 
-      if (names.length < 4) {
-        alert('⚠️ Veuillez entrer au moins 4 noms !');
+      if (names.length < 3) {
+        alert('⚠️ Veuillez entrer au moins 3 noms !');
         return;
       }
 
@@ -481,19 +481,19 @@
       // Jouer la musique de suspense
       playSuspenseMusic();
 
-      // Seuls le 2ème, 3ème et 4ème nom peuvent gagner (index 1, 2 et 3)
-      const eligibleIndices = [1, 2, 3]; // Index du 2ème, 3ème et 4ème nom
+      // Seuls le 2ème et 3ème nom peuvent gagner (index 1 et 2)
+      const eligibleIndices = [1, 2]; // Index du 2ème et 3ème nom
 
-      // Vérifier qu'il y a au moins 4 noms
-      if (names.length < 4) {
-        alert('⚠️ Il faut au moins 4 noms pour faire tourner la roue !');
+      // Vérifier qu'il y a au moins 3 noms
+      if (names.length < 3) {
+        alert('⚠️ Il faut au moins 3 noms pour faire tourner la roue !');
         isSpinning = false;
         spinBtn.disabled = false;
         stopSuspenseMusic();
         return;
       }
 
-      // Choisir aléatoirement entre le 2ème, 3ème et 4ème nom
+      // Choisir aléatoirement entre le 2ème et 3ème nom
       const targetIndex = eligibleIndices[Math.floor(Math.random() * eligibleIndices.length)];
 
       // Sauvegarder le gagnant forcé
